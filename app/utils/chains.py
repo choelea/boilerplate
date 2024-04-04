@@ -1,6 +1,6 @@
 from langchain.chains import LLMChain
 from langchain_core.prompts import PromptTemplate
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 
 import re
 

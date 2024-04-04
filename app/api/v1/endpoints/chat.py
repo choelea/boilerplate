@@ -17,7 +17,7 @@ from app.utils.tools import (
 )
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.utils.uuid6 import uuid7
-from langchain_community.chat_models.openai import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.schema import SystemMessage
 from langchain.prompts import (
     ChatPromptTemplate,

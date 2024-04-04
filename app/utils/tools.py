@@ -1,5 +1,5 @@
 from app.core.config import settings
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage
 from langchain.tools import BaseTool
 from serpapi import GoogleSearch
