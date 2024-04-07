@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from app.api.v1.api import api_router as api_router_v1
@@ -23,6 +25,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+logging.basicConfig(
+    filename='logs/app.log',  # 日志文件路径
+    level=logging.INFO,  # 日志级别为 ERROR，只记录 ERROR 及以上级别的日志信息
+    format='%(asctime)s [%(levelname)s] %(message)s',  # 日志格式
+)
+
+
 # Set all CORS origins enabled
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
@@ -38,7 +47,7 @@ async def root():
     """
     An example "Hello world" FastAPI route.
     """
-    # if oso.is_allowed(user, "read", message):
+    logging.info("This is logging example")
     return {"message": "Hello World"}
 
 
