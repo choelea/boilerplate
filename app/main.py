@@ -25,6 +25,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Logging Configuration；日志配置应该根据部署模式不同而不同，本地部署打印日志到console，线上部署打印日志到文件
+
 logging.basicConfig(
     filename='logs/app.log',  # 日志文件路径
     level=logging.INFO,  # 日志级别为 ERROR，只记录 ERROR 及以上级别的日志信息

@@ -37,58 +37,6 @@ memory = ConversationBufferMemory(memory_key="chat_history", return_messages=Tru
 @router.websocket("")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    if not settings.OPENAI_API_KEY.startswith("sk-"):
-        await websocket.send_json({"error": "OPENAI_API_KEY is not set"})
-        return
-
-    while True:
-        data = await websocket.receive_json()
-        user_message = data["message"]
-        user_message_card = create_adaptive_card(user_message)
-
-        resp = IChatResponse(
-            sender="you",
-            message=user_message_card.to_dict(),
-            type="start",
-            message_id=str(uuid7()),
-            id=str(uuid7()),
-        )
-        await websocket.send_json(resp.dict())
-
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                SystemMessage(
-                    content="You are a chatbot having a conversation with a human."
-                ),  # The persistent system prompt
-                MessagesPlaceholder(
-                    variable_name="chat_history"
-                ),  # Where the memory will be stored.
-                HumanMessagePromptTemplate.from_template(
-                    "{human_input}"
-                ),  # Where the human input will injectd
-            ]
-        )
-        message_id: str = str(uuid7())
-        custom_handler = CustomAsyncCallbackHandler(
-            websocket=websocket, message_id=message_id
-        )
-        llm = ChatOpenAI(streaming=True, callbacks=[custom_handler])
-
-        chat_llm_chain = LLMChain(
-            llm=llm,
-            prompt=prompt,
-            verbose=False,
-            memory=memory,
-        )
-
-        await chat_llm_chain.apredict(
-            human_input=user_message,
-        )
-
-
-@router.websocket("/tools")
-async def websocket_endpoint(websocket: WebSocket):
-    await websocket.accept()
 
     if not settings.OPENAI_API_KEY.startswith("sk-"):
         await websocket.send_json({"error": "OPENAI_API_KEY is not set"})
@@ -97,6 +45,7 @@ async def websocket_endpoint(websocket: WebSocket):
     while True:
         try:
             data = await websocket.receive_json()
+            logging.info(f"Received data: {data}")
             user_message = data["message"]
             user_message_card = create_adaptive_card(user_message)
 
