@@ -3,8 +3,7 @@ from typing import Any, Generic, TypeVar
 from collections.abc import Sequence
 from fastapi_pagination import Params, Page
 from fastapi_pagination.bases import AbstractPage, AbstractParams
-from pydantic import Field
-from pydantic.generics import GenericModel
+from pydantic import Field, BaseModel
 
 DataType = TypeVar("DataType")
 T = TypeVar("T")
@@ -17,7 +16,7 @@ class PageBase(Page[T], Generic[T]):
     next_page: int | None = Field(None, description="Page number of the next page")
 
 
-class IResponseBase(GenericModel, Generic[T]):
+class IResponseBase(BaseModel, Generic[T]):
     message: str = ""
     meta: dict = {}
     data: T | None
@@ -32,22 +31,21 @@ class IGetResponsePaginated(AbstractPage[T], Generic[T]):
 
     @classmethod
     def create(
-        cls,
-        items: Sequence[T],
-        total: int,
-        params: AbstractParams,
+            cls,
+            items: Sequence[T],
+            params: AbstractParams,
+            **kwargs: 'Any'
     ) -> PageBase[T] | None:
-        if params.size is not None and total is not None and params.size != 0:
-            pages = ceil(total / params.size)
+        if params.size is not None and params.total is not None and params.size != 0:
+            pages = ceil(params / params.size)
         else:
             pages = 0
-
         return cls(
-            data=PageBase[T](
+                data=PageBase[T](
                 items=items,
                 page=params.page,
                 size=params.size,
-                total=total,
+                total=params.total,
                 pages=pages,
                 next_page=params.page + 1 if params.page < pages else None,
                 previous_page=params.page - 1 if params.page > 1 else None,
@@ -71,17 +69,33 @@ class IDeleteResponseBase(IResponseBase[DataType], Generic[DataType]):
     message: str | None = "Data deleted correctly"
 
 
+class ICommonRes(BaseModel, Generic[T]):
+    """
+    扬州航空模型问答的返回
+    """
+    code: int = 200
+    pic: str = ''
+    result: T | None
+
+
+class AnswerResult(BaseModel):
+    """
+    问答返回的具体回答
+    """
+    text: str
+
+
 def create_response(
-    data: DataType,
-    message: str | None = None,
-    meta: dict | Any | None = {},
+        data: DataType,
+        message: str | None = None,
+        meta: dict | Any | None = {},
 ) -> (
-    IResponseBase[DataType]
-    | IGetResponsePaginated[DataType]
-    | IGetResponseBase[DataType]
-    | IPutResponseBase[DataType]
-    | IDeleteResponseBase[DataType]
-    | IPostResponseBase[DataType]
+        IResponseBase[DataType]
+        | IGetResponsePaginated[DataType]
+        | IGetResponseBase[DataType]
+        | IPutResponseBase[DataType]
+        | IDeleteResponseBase[DataType]
+        | IPostResponseBase[DataType]
 ):
     if isinstance(data, IGetResponsePaginated):
         data.message = "Data paginated correctly" if message is None else message

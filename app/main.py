@@ -3,10 +3,12 @@ import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from app.api.v1.api import api_router as api_router_v1
+from app.api.demo.api import api_router as api_router_v0
 from app.core.config import settings
 from app.templates.chat import chat_html
 from contextlib import asynccontextmanager
 from starlette.middleware.cors import CORSMiddleware
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,18 +23,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.API_VERSION,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    openapi_url=f"{settings.API_PREFIX}/openapi.json",
     lifespan=lifespan,
 )
-
-# Logging Configuration；日志配置应该根据部署模式不同而不同，本地部署打印日志到console，线上部署打印日志到文件
-
 logging.basicConfig(
     filename='logs/app.log',  # 日志文件路径
     level=logging.INFO,  # 日志级别为 ERROR，只记录 ERROR 及以上级别的日志信息
     format='%(asctime)s [%(levelname)s] %(message)s',  # 日志格式
 )
-
 
 # Set all CORS origins enabled
 if settings.BACKEND_CORS_ORIGINS:
@@ -44,12 +42,13 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
+
 @app.get("/")
 async def root():
     """
     An example "Hello world" FastAPI route.
     """
-    logging.info("This is logging example")
+    # if oso.is_allowed(user, "read", message):
     return {"message": "Hello World"}
 
 
@@ -64,4 +63,5 @@ async def chat():
 
 
 # Add Routers
-app.include_router(api_router_v1, prefix=settings.API_V1_STR)
+app.include_router(api_router_v1, prefix=settings.API_PREFIX)
+app.include_router(api_router_v0, prefix=settings.API_PREFIX)

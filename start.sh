@@ -23,4 +23,4 @@ echo "Starting Uvicorn..."
 
 nohup uvicorn $APP_MODULE --host $HOST --port $PORT > $LOGFILE 2>&1 &
 
-echo "Uvicorn restarted successfully."%  
+echo "Uvicorn restarted successfully."

@@ -2,7 +2,7 @@ from app.core.config import settings
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage
 from langchain.tools import BaseTool
-from serpapi import GoogleSearch
+import serpapi
 from typing import Any, Optional
 import httpx
 
@@ -133,17 +133,17 @@ class YoutubeSearchTool(BaseTool):
                 "search_query": query,
                 "api_key": settings.SERP_API_KEY,
             }
-            search = GoogleSearch(params)
-            results = search.get_dict()
-            videos = results["video_results"]
-            video_list_string = "\n".join(
-                [
-                    f"{i+1}. [{video['title']}]({video['link']})"
-                    for i, video in enumerate(videos)
-                ]
-            )
-            return video_list_string
-
+            # search = GoogleSearch(params)
+            # results = search.get_dict()
+            # videos = results["video_results"]
+            # video_list_string = "\n".join(
+            #     [
+            #         f"{i+1}. [{video['title']}]({video['link']})"
+            #         for i, video in enumerate(videos)
+            #     ]
+            # )
+            # return video_list_string
+            #
 
 class GeneralWeatherTool(BaseTool):
     name = "Weather"
