@@ -4,44 +4,55 @@ import logging
 from datetime import datetime
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import AzureChatOpenAI
-from app.api.example.customer.QASlow import langchain_vectorstores ,langchain_vectorstores_precision
-from app.api.example.customer.QASlow import zhipu_ai
+from app.api.demo.slowqa import zhipu_ai, langchain_vectorstores_precision, langchain_vectorstores
 from langchain.chains import LLMChain
 import serpapi
 import os
 from dotenv import load_dotenv
 
 
-# 配置日志
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-load_dotenv()
+
 
 router = APIRouter()
 def checkUrl(question,content,model):
+    '''
+    检测向量文本种是否包含【图片连接】
+    '''
+
+    #根据 【模式】 获取相关知识库 文本
     if model == '严格':
         knowledge = langchain_vectorstores_precision.query_all_matches_precision(question, content)
     elif model == '发散':
         knowledge = langchain_vectorstores.query_all_matches(question, content)
+
+    #使用zhipuAI的glm-4作为大模型
     chat = zhipu_ai.ChatZhipuAI(
         temperature=0.5,
-        api_key=os.getenv('zhipu_api_key'),
         model="glm-4",
     )
-    # print(knowledge)
+
+    #给大模型 提取知识库 并转换成 前端图片标签
     response = chat.invoke("总结，知识：" + str(knowledge) + "\\n问题：" + str(question) + "判断知识和问题有关吗"
-                                                                                                "如果判断知识和问题有关则输出例子，将文章中的连接转换成标签，并且只返回标签！！！（标签例子： <p><img src='https://...2.jpg' alt='介绍飞机的机身结构'> </p>可能有多个)\\n"
-                                                                                                "如果判断知识和问题关联不大或如果没有连接url 则返回null，不要自己加任何话，只返回null")
+                                                                                        "如果判断知识和问题有关则输出例子，将文章中的连接转换成标签，并且只返回标签！！！（标签例子： <p><img src='https://...2.jpg' alt='介绍飞机的机身结构'> </p>可能有多个)\\n"
+                                                                                        "如果判断知识和问题关联不大或如果没有连接url 则返回null，不要自己加任何话，只返回null")
+    # 返回标签
     return response.content
 
 def qa(question,content,model):
+    '''
+    qa慢速版本
+    1.向量匹配知识库
+    2.【发散模式支持】知识库没相关知识，则在互联网上搜索一条信息
+    3.总结并返回答案
+    '''
 
+    # 根据 【模式】 获取相关知识库 文本
     if model == '严格':
         knowledge = langchain_vectorstores_precision.query_all_matches_precision(question, content)
     elif model == '发散':
         knowledge = langchain_vectorstores.query_all_matches(question, content)
 
-    # 没有加入环境变量
+    # 使用 Azure的gpt-35-turbo作为大模型
     llm = AzureChatOpenAI(
         azure_endpoint="https://coe0118.openai.azure.com/",
         azure_deployment="gpt-35-turbo",
@@ -49,6 +60,7 @@ def qa(question,content,model):
         openai_api_key=os.getenv('AZURE_OPENAI_API_KEY')
     )
 
+    # 严格模式的prompt
     template = """
             你是星小航，一个问答助力.请使用以下检索到的上下文来回答问题，并尽量使用检索到的上下文回答。
             如果上下文中提到“中航机载系统共性技术有限公司”，尽可能让其出现在回答中。
@@ -58,6 +70,8 @@ def qa(question,content,model):
             Context: {context} 
             Answer:
             """
+
+    # 发散模式的prompt
     template_image = """
                 你是星小航，一个专业的客服,请礼貌回答问题。
                 用以下检索到的上下文来回答问题，并尽量使用检索到的上下文回答。
@@ -79,22 +93,20 @@ def qa(question,content,model):
                 """
 
 
-    # docs = [Document(text, metadata=None) for text in knowledge]
 
 
+    #根据模式 匹配prompt
     if model == '严格':
-        #question_temp = "请在文档中查询" + question + "内容，若不存在则回答不存在，若存在请回答存在得具体相关内容，按要求回答给我，不要说根据上下文之类的思考过程"
         prompt = ChatPromptTemplate.from_template(template)
-        # return knowledge
     elif model == '发散':
-        #question_temp = question
         prompt = ChatPromptTemplate.from_template(template_image)
     else:
         raise HTTPException(status_code=500, detail="Model 参数无效。请选择 '严格' 或 '发散'。")
 
+    #使用问题链
     question_generator_chain = LLMChain(llm=llm, prompt=prompt)
 
-    #没有加入环境变量
+    #【发散模式支持】知识库没有数据 用serpapi搜索一条相关信息 -todo 后续可拓展成 langchain-Tool
     client = serpapi.Client(api_key=os.getenv('SERP_API_KEY'))
     params1 = {
         "engine": "google",
@@ -113,6 +125,8 @@ def qa(question,content,model):
             search = str("No results found.")
     else:
         search = "null"
+
+    #使用问答链并返回
     res = question_generator_chain.invoke({"question": question, "context": knowledge, "search": search, 'chat_history': ''},
                                           return_only_outputs=False)
 
@@ -121,6 +135,11 @@ def qa(question,content,model):
 
 @router.get("/qa_slow")
 def qa_route(question: str, model: str, content: str):
+    '''
+    问答慢速版 注册到fastAPI
+    '''
+
+    #初始化值
     pic = 'null'
     try:
 
@@ -137,8 +156,9 @@ def qa_route(question: str, model: str, content: str):
             msg = "失败"
 
         else:
-
+            #文本回答
             result = qa(question,content,model)
+            #知识库判断有无图片连接，返回图片标签 或null
             pic = checkUrl(question,content,model)
             code = 200
             result = result
@@ -146,11 +166,9 @@ def qa_route(question: str, model: str, content: str):
     except Exception as e:
         current_time = datetime.now()
         exception_message = str(e)
-        logger.info("{} -> 程序产生异常,信息为: {}".format(current_time, exception_message))
+        logging.info("{} -> 程序产生异常,信息为: {}".format(current_time, exception_message))
         code = 500
         msg = "服务端内部异常"
 
     return QaSlowMessage(code=code, result=result, msg=msg, model=model, content=content, pic=pic)
 
-if __name__ == '__main__':
-    print(qa_route('我是帅小伙吗','发散','text'))

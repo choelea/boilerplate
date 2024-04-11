@@ -13,17 +13,15 @@
 ```properties
 PROJECT_NAME=app
 BACKEND_CORS_ORIGINS=["*"]
-
 OPENAI_API_KEY=replace with your real key
+
 UNSPLASH_API_KEY=replace with your real key
 SERP_API_KEY=replace with your real key
 AZURE_OPENAI_API_KEY=replace with your real key#微软Azure OpenAI Key
-ZHIPUAI_API_KEY = replace with your real key #智谱
-
-
 APP_AK = replace with your real key #问学
 APP_SK = replace with your real key #问学
 APP_APP_ID = replace with your real key #问学
+ZHIPUAI_API_KEY = replace with your real key #智谱
 ```
 
 ### 运行程序

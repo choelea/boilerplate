@@ -3,7 +3,7 @@ import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from app.api.v1.api import api_router as api_router_v1
-from app.api.demo.api import api_router as api_router_v0
+from app.api.demo.api import api_router as demo_api_router
 from app.core.config import settings
 from app.templates.chat import chat_html
 from contextlib import asynccontextmanager
@@ -64,4 +64,4 @@ async def chat():
 
 # Add Routers
 app.include_router(api_router_v1, prefix=settings.API_PREFIX)
-app.include_router(api_router_v0, prefix=settings.API_PREFIX)
+app.include_router(demo_api_router, prefix="/demo")

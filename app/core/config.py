@@ -33,4 +33,5 @@ class Settings(BaseSettings):
 
 
 load_dotenv(os.path.expanduser(".env"))
+load_dotenv() #Pycharm2022
 settings = Settings()

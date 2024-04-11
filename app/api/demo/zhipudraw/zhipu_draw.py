@@ -12,7 +12,7 @@ load_dotenv()
 async def cogview_route(question: str = Query(default='null', description="Question for the AI model")):
     try:
         # 这里假设您有一个客户端类来调用API
-        client = ZhipuAI(api_key=os.getenv('zhipu_api_key'))
+        client = ZhipuAI()
         response = client.images.generations(
            model="cogview-3",
            prompt=question + "（图片比例16：9）",

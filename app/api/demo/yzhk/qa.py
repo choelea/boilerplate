@@ -1,5 +1,8 @@
+# 这是一个为了演示的示例：主要实现：针对预设的问题反馈指定的回答，如果问题不在预设的问题列表中，则通过AI模型回答。
+
 import logging
 import os
+import time
 
 from fastapi import APIRouter
 from langchain_core.output_parsers import StrOutputParser
@@ -46,6 +49,11 @@ private_template = """
                 Context: {context} 
                 """
 
+answer_1 = "扬州的航空产业发展势头强劲且成果显著。通过与中国航空工业集团深度合作，共建了沈阳飞机设计研究所扬州协同创新研究院、中航机载系统共性技术有限公司等科研平台，引入并落地实施了一批科创项目，如中国航空研究院研究生院等，加速了航空产业链上下游企业的集聚，形成了产业生态圈。"
+answer_3 = """航空百年多彷徨，初心只为兴国邦；
+鲲鹏而今展翅起，扶摇直上任翱翔。
+群贤毕至聚淮左，肇始蓝图起篇章；
+工业之冠匠心筑，运河之都万里航。"""
 private_prompt = ChatPromptTemplate.from_template(private_template)
 public_promote = ChatPromptTemplate.from_template(public_template)
 
@@ -56,20 +64,29 @@ private_chain = private_prompt | llm | output_parser
 public_chain = public_promote | llm | output_parser
 
 
-@router.get("")
+@router.get("/qa")
 async def get_answer(question: str):
+    answer: str = ""
     question_matching = await question_match(question)
     logging.info(f"question_matching: {question_matching}")
     if question_matching.match:
         logging.info(f"Going to answer based on private context")
-        context = private_contexts[question_matching.index - 1]
-        # context = private_contexts
-        res = private_chain.invoke({"question": question, "context": context})
+        if(question_matching.index == 1):
+            # 等待3秒
+            time.sleep(3)
+            answer = answer_1
+        elif question_matching.index == 3:
+            time.sleep(3)
+            answer = answer_3
+        else:
+            context = private_contexts[question_matching.index - 1]
+            # context = private_contexts
+            answer = private_chain.invoke({"question": question, "context": context})
     else:
         logging.info(f"Going to answer based on AI's Knowledge")
-        res = public_chain.invoke({"question": question})
-    logging.info(f"question:{question}, Answer: {res}")
-    result = AnswerResult(text=res)
+        answer = public_chain.invoke({"question": question})
+    logging.info(f"question:{question}, Answer: {answer}")
+    result = AnswerResult(text=answer)
     return ICommonRes[AnswerResult](result=result)
 
 
@@ -104,6 +121,7 @@ async def question_match(question: str) -> QuestionMatching:
     Question List:
     1、扬州航空产业发展如何；
     2、飞机组成部分；
+    3、扬州航空相关的诗句；
     """
 
     # msg = f"""
